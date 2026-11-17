@@ -24,6 +24,35 @@ function renderStatsCards(p) {
     ).join('');
 }
 
+// A server restart drops in-memory sessions. Reset the UI instead of leaving
+// the user stuck with dead buttons and "Sessiya topilmadi" toasts.
+function resetSession(message) {
+    sessionId = null;
+    currentColumns = [];
+    document.querySelectorAll('.nav-btn').forEach(b => {
+        if (b.dataset.tab !== 'upload') b.disabled = true;
+    });
+    document.getElementById('file-info').classList.add('hidden');
+    document.getElementById('stats-cards').innerHTML = '';
+    document.getElementById('auto-charts').innerHTML = '';
+    ['clean-results', 'ml-results', 'cluster-results', 'stats-results', 'insights-container'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '';
+    });
+    switchTab('upload', true);
+    showToast(message || 'Sessiya tugadi. Faylni qaytadan yuklang.', 'error');
+}
+
+function handleDataError(data) {
+    if (!data || !data.error) return false;
+    if (data.session_expired || String(data.error).includes('Sessiya topilmadi')) {
+        resetSession('Sessiya tugadi (server qayta ishga tushgan). Faylni qaytadan yuklang.');
+    } else {
+        showToast(data.error, 'error');
+    }
+    return true;
+}
+
 // ===== Upload =====
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
@@ -102,7 +131,7 @@ function refreshDashboard() {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ session_id: sessionId })
     }).then(r => r.json()).then(data => {
-        if (data.error) return showToast(data.error, 'error');
+        if (handleDataError(data)) return;
         renderStatsCards(data.profiling);
     });
 }
@@ -112,7 +141,7 @@ function refreshCharts() {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ session_id: sessionId })
     }).then(r => r.json()).then(data => {
-        if (data.error) return showToast(data.error, 'error');
+        if (handleDataError(data)) return;
         renderCharts(data.auto_charts);
     });
 }
@@ -146,7 +175,7 @@ function loadPreview(page) {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ session_id: sessionId, page, per_page: 50 })
     }).then(r => r.json()).then(data => {
-        if (data.error) return showToast(data.error, 'error');
+        if (handleDataError(data)) return;
         const p = data.preview;
         totalPages = p.total_pages;
         let html = '<thead><tr>';
@@ -175,7 +204,7 @@ function refreshClean() {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ session_id: sessionId })
     }).then(r => r.json()).then(data => {
-        if (data.error) return;
+        if (handleDataError(data)) return;
         const dropSel = document.getElementById('drop-col');
         dropSel.innerHTML = data.columns.map(c =>
             `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
@@ -206,7 +235,7 @@ function runClean(operations) {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ session_id: sessionId, operations })
     }).then(r => r.json()).then(data => {
-        if (data.error) return showToast(data.error, 'error');
+        if (handleDataError(data)) return;
         const container = document.getElementById('clean-results');
         container.innerHTML = data.results.map(r =>
             `<div class="clean-result-item">${escapeHtml(r)}</div>`).join('');
@@ -267,7 +296,7 @@ function createChart() {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload)
     }).then(r => r.json()).then(data => {
-        if (data.error) return showToast(data.error, 'error');
+        if (handleDataError(data)) return;
         const chartData = JSON.parse(data.chart);
         Plotly.newPlot('custom-chart', chartData.data, chartData.layout, {responsive: true, displaylogo: false});
     });
@@ -297,6 +326,7 @@ function runMLPredict() {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload)
     }).then(r => r.json()).then(data => {
+        if (handleDataError(data)) return;
         if (data.error) {
             document.getElementById('ml-results').innerHTML = `<div class="error-msg">${escapeHtml(data.error)}</div>`;
             return;
@@ -357,6 +387,7 @@ function runCluster() {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ session_id: sessionId, n_clusters: k, features: feats })
     }).then(r => r.json()).then(data => {
+        if (handleDataError(data)) return;
         if (data.error) {
             document.getElementById('cluster-results').innerHTML = `<div class="error-msg">${escapeHtml(data.error)}</div>`;
             return;
@@ -388,7 +419,7 @@ function runStats() {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload)
     }).then(r => r.json()).then(data => {
-        if (data.error) return showToast(data.error, 'error');
+        if (handleDataError(data)) return;
         const r = data.results;
         let html = '';
         if (r.chart) {
@@ -423,7 +454,7 @@ function loadInsights() {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ session_id: sessionId })
     }).then(r => r.json()).then(data => {
-        if (data.error) return showToast(data.error, 'error');
+        if (handleDataError(data)) return;
         const icons = {
             'database': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
             'alert-triangle': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',

@@ -432,7 +432,7 @@ def get_profiling():
     try:
         sess = _get_session(_body().get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi"}), 400
+            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
         return jsonify({"profiling": cached(
             sess, "profiling", lambda: generate_data_profiling(sess["df"]))})
     except Exception as e:
@@ -445,7 +445,7 @@ def get_preview():
         d = _body()
         sess = _get_session(d.get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi"}), 400
+            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
         key = f"preview:{d.get('page', 1)}:{d.get('per_page', 50)}"
         return jsonify({"preview": cached(
             sess, key,
@@ -459,7 +459,7 @@ def get_columns():
     try:
         sess = _get_session(_body().get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi"}), 400
+            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
         return jsonify({"columns": cached(
             sess, "columns", lambda: get_columns_info(sess["df"]))})
     except Exception as e:
@@ -471,7 +471,7 @@ def auto_charts():
     try:
         sess = _get_session(_body().get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi"}), 400
+            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
         return jsonify({"auto_charts": cached(
             sess, "charts", lambda: generate_auto_charts(sess["df"]))})
     except Exception as e:
@@ -484,7 +484,7 @@ def clean_data():
         d = _body()
         sess = _get_session(d.get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi"}), 400
+            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
         df = sess["df"].copy()
         operations = d.get("operations", [])
         results = []
@@ -603,7 +603,7 @@ def create_chart():
         d = _body()
         sess = _get_session(d.get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi"}), 400
+            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
         src = _sample(sess["df"], CUSTOM_CHART_SAMPLE_ROWS)
         ct = d.get("chart_type")
         x, y, z = d.get("x_col"), d.get("y_col"), d.get("z_col")
@@ -725,7 +725,7 @@ def ml_predict():
         d = _body()
         sess = _get_session(d.get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi"}), 400
+            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
         X, y, ptype, class_names = _prepare_xy(sess, d)
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=float(d.get("test_size", 0.2)), random_state=42)
@@ -850,7 +850,7 @@ def ml_cluster():
         d = _body()
         sess = _get_session(d.get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi"}), 400
+            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
         k = int(d.get("n_clusters", 3))
         features = d.get("features") or []
         src = _sample(sess["df"], CLUSTER_SAMPLE_ROWS)
@@ -933,7 +933,7 @@ def statistics():
         d = _body()
         sess = _get_session(d.get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi"}), 400
+            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
         df = sess["df"]
         src = _sample(df, CUSTOM_CHART_SAMPLE_ROWS)
         at = d.get("analysis_type")
@@ -991,7 +991,7 @@ def ai_insights():
         d = _body()
         sess = _get_session(d.get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi"}), 400
+            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
         if "insights" not in sess["cache"]:
             sess["cache"]["insights"] = _build_insights(sess["df"])
         return jsonify({"insights": sess["cache"]["insights"]})
@@ -1106,7 +1106,7 @@ def download_data():
         d = _body()
         sess = _get_session(d.get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi"}), 400
+            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
         fmt = d.get("format", "csv")
         if fmt not in ("csv", "xlsx", "json"):
             return jsonify({"error": "Noto'g'ri format"}), 400
