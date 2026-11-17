@@ -606,10 +606,15 @@ def create_chart():
             return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
         src = _sample(sess["df"], CUSTOM_CHART_SAMPLE_ROWS)
         ct = d.get("chart_type")
-        x, y, z = d.get("x_col"), d.get("y_col"), d.get("z_col")
-        cc, sc = d.get("color_col"), d.get("size_col")
-        af = d.get("agg_func", "sum")
-        title = d.get("title", "")
+        # The UI sends "" for optional selects; Plotly would treat it as a
+        # column name and fail. Normalize empty strings to None.
+        x = d.get("x_col") or None
+        y = d.get("y_col") or None
+        z = d.get("z_col") or None
+        cc = d.get("color_col") or None
+        sc = d.get("size_col") or None
+        af = d.get("agg_func") or "sum"
+        title = d.get("title") or ""
         fig = None
         if ct == "scatter":
             fig = px.scatter(src, x=x, y=y, color=cc, size=sc, title=title or f"{y} vs {x}")

@@ -282,14 +282,15 @@ function populateSelectors(columns) {
 }
 
 function createChart() {
+    const val = id => document.getElementById(id).value || null;
     const payload = {
         session_id: sessionId,
         chart_type: document.getElementById('chart-type').value,
-        x_col: document.getElementById('chart-x').value,
-        y_col: document.getElementById('chart-y').value,
-        z_col: document.getElementById('chart-z').value,
-        color_col: document.getElementById('chart-color').value,
-        size_col: document.getElementById('chart-size').value,
+        x_col: val('chart-x'),
+        y_col: val('chart-y'),
+        z_col: val('chart-z'),
+        color_col: val('chart-color'),
+        size_col: val('chart-size'),
         agg_func: document.getElementById('chart-agg').value,
     };
     fetch('/chart', {
