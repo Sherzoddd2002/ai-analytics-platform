@@ -4,10 +4,16 @@ Key fixes: cached profiling/charts/insights, sampled analytics, gzip,
 bounded sessions, safer error handling.
 """
 import os
+
+# Joblib/scikit-learn should not spawn `wmic` on Windows just to count cores.
+os.environ.setdefault("LOKY_MAX_CPU_COUNT", str(os.cpu_count() or 4))
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+
 import gzip
 import json
 import uuid
 import time
+import threading
 import traceback
 import warnings
 from datetime import datetime, timedelta
@@ -358,6 +364,8 @@ def index():
 @app.route("/upload", methods=["POST"])
 def upload_file():
     try:
+        # A very early upload may arrive while the background warmup runs.
+        _WARMUP_DONE.wait(timeout=20)
         if "file" not in request.files:
             return jsonify({"error": "Fayl topilmadi"}), 400
         file = request.files["file"]
@@ -1119,8 +1127,38 @@ def download_data():
         return _fail(e)
 
 
+# ---- Warm up Plotly/scikit-learn in the background -------------------------
+# The very first Plotly Express call costs ~7 s (template loading). If we let it
+# happen on the first upload, the UI looks frozen. Do it once at startup instead.
+_WARMUP_DONE = threading.Event()
+
+
+def _warm_up():
+    try:
+        warm = pd.DataFrame({
+            "warm_a": np.linspace(0, 1, 100),
+            "warm_b": np.linspace(1, 0, 100),
+            "warm_cat": ["x", "y"] * 50,
+        })
+        generate_data_profiling(warm)
+        generate_preview(warm)
+        generate_auto_charts(warm)
+        LinearRegression().fit(np.arange(20).reshape(10, 2), np.arange(10))
+    except Exception as exc:
+        print(f"[WARN] warmup failed: {exc}", flush=True)
+    finally:
+        _WARMUP_DONE.set()
+
+
+threading.Thread(target=_warm_up, name="warmup", daemon=True).start()
+
+
 if __name__ == "__main__":
-    # debug=False: no reloader, no traceback page, lower memory use.
-    app.run(debug=False, threaded=True,
-            host=os.environ.get("HOST", "0.0.0.0"),
-            port=int(os.environ.get("PORT", 5000)))
+    host = os.environ.get("HOST", "0.0.0.0")
+    port = int(os.environ.get("PORT", 5000))
+    try:
+        # Production WSGI server: threaded, no dev-server warning/reloader.
+        from waitress import serve
+        serve(app, host=host, port=port, threads=8)
+    except ImportError:
+        app.run(debug=False, threaded=True, host=host, port=port)

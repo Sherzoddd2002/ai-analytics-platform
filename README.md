@@ -77,7 +77,7 @@ http://localhost:5000
 ## Texnologiyalar
 
 - **Backend**: Flask 3.1, Pandas 2.2, NumPy 2.1, SciPy 1.15, Scikit-learn 1.6, Statsmodels 0.14
-- **Frontend**: HTML5, CSS3, JavaScript (vanilla), Plotly.js 2.27
+- **Frontend**: HTML5, CSS3, JavaScript (vanilla), Plotly.js (lokal `static/js/plotly.min.js`, CDN emas)
 - **Vizualizatsiya**: Plotly
 
 ## Loyiha tuzilishi
@@ -125,6 +125,9 @@ PORT=5055 python app.py
 - Klasterlash: 10 000 qator namunasi, katta ma'lumotda `MiniBatchKMeans`, silhouette 2 000 nuqtada, Elbow eng ko'pi 8 ta K.
 - `/clean` endi faqat natija + kichik profil/preview qaytaradi; grafiklar `/charts/auto` orqali alohida olinadi.
 - JSON javoblar **gzip** bilan siqiladi; `debug=False` va sessiyalar 6 soat / 20 sessiya bilan cheklangan.
+- Plotly endi **lokal fayldan** yuklanadi (`static/js/plotly.min.js`) — CDN bloklangan tarmoqda sahifa 25 s kutib qolmaydi.
+- Plotly’ning birinchi grafik yaratish xarajati (~7 s) server ishga tushganda **fonda isitiladi**; erta yuklash shu isitish tugashini kutadi, keyingi yuklashlar ~2 s.
+- `python app.py` endi mavjud bo‘lsa **Waitress** WSGI serverida ishlaydi (`waitress>=3.0.0` requirements’da); yo‘q bo‘lsa Flask dev serveriga qaytadi. `OMP_NUM_THREADS=1` Windows’dagi `wmic` xatosi va MKL sekinligining oldini oladi.
 - Fayl nomi va foydalanuvchi ma'lumotlari HTML'ga chiqarishda escape qilinadi; xato traceback'i brauzerga yuborilmaydi; 250 000 qator / 200 ustun chegarasi mavjud.
 
 (grafiklar, AI Insights va ML bashoratlari namuna asosida hisoblanadi — ya'ni taxminiy ko'rsatkich; asl ma'lumot va tozalash operatsiyalari to'liq qatorlarda bajariladi).

@@ -126,8 +126,11 @@ function renderCharts(charts) {
         // Parse once per chart and use static mode: much cheaper for Plotly.
         container.querySelectorAll('.chart-card').forEach((card, i) => {
             const parsed = JSON.parse(charts[i].chart);
+            // The card already shows the title; don't draw it twice inside the plot.
+            if (parsed.layout && parsed.layout.title) parsed.layout.title = '';
             Plotly.newPlot(card.querySelector('.chart-plot'), parsed.data, parsed.layout,
-                           {responsive: true, displaylogo: false, modeBarButtonsToRemove: ['lasso2d', 'select2d']});
+                           {responsive: true, displaylogo: false,
+                            modeBarButtonsToRemove: ['lasso2d', 'select2d']});
         });
     }
 }
@@ -266,7 +269,7 @@ function createChart() {
     }).then(r => r.json()).then(data => {
         if (data.error) return showToast(data.error, 'error');
         const chartData = JSON.parse(data.chart);
-        Plotly.newPlot('custom-chart', chartData.data, chartData.layout, {responsive: true});
+        Plotly.newPlot('custom-chart', chartData.data, chartData.layout, {responsive: true, displaylogo: false});
     });
 }
 
@@ -334,15 +337,15 @@ function renderMLResults(data) {
     document.getElementById('ml-results').innerHTML = html;
     if (data.prediction_chart) {
         const cd = JSON.parse(data.prediction_chart);
-        Plotly.newPlot('ml-pred-chart', cd.data, cd.layout, {responsive: true});
+        Plotly.newPlot('ml-pred-chart', cd.data, cd.layout, {responsive: true, displaylogo: false});
     }
     if (data.importance_chart) {
         const cd = JSON.parse(data.importance_chart);
-        Plotly.newPlot('ml-imp-chart', cd.data, cd.layout, {responsive: true});
+        Plotly.newPlot('ml-imp-chart', cd.data, cd.layout, {responsive: true, displaylogo: false});
     }
     if (data.report_chart) {
         const cd = JSON.parse(data.report_chart);
-        Plotly.newPlot('ml-report-chart', cd.data, cd.layout, {responsive: true});
+        Plotly.newPlot('ml-report-chart', cd.data, cd.layout, {responsive: true, displaylogo: false});
     }
 }
 
@@ -367,9 +370,9 @@ function runCluster() {
         }
         document.getElementById('cluster-results').innerHTML = html;
         const cd = JSON.parse(data.chart);
-        Plotly.newPlot('cluster-chart', cd.data, cd.layout, {responsive: true});
+        Plotly.newPlot('cluster-chart', cd.data, cd.layout, {responsive: true, displaylogo: false});
         const ed = JSON.parse(data.elbow_chart);
-        Plotly.newPlot('elbow-chart', ed.data, ed.layout, {responsive: true});
+        Plotly.newPlot('elbow-chart', ed.data, ed.layout, {responsive: true, displaylogo: false});
     });
 }
 
@@ -407,7 +410,7 @@ function runStats() {
         document.getElementById('stats-results').innerHTML = html || '<p>Tahlil natijasi yoq</p>';
         if (r.chart) {
             const cd = JSON.parse(r.chart);
-            Plotly.newPlot('stats-chart', cd.data, cd.layout, {responsive: true});
+            Plotly.newPlot('stats-chart', cd.data, cd.layout, {responsive: true, displaylogo: false});
         }
     });
 }
