@@ -108,7 +108,26 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt --force-reinstall
 ```
 
-Agar port 5000 band bo'lsa, `app.py`'ning oxiridagi `port=5000`'ni o'zgartiring.
+Agar port 5000 band bo'lsa, portni `PORT` muhit o'zgaruvchisi bilan o'zgartiring:
+
+```bash
+# Windows
+set PORT=5055 && python app.py
+# macOS / Linux
+PORT=5055 python app.py
+```
+
+## Optimallashtirishlar (tezkor versiya)
+
+- Profil, grafiklar, ustun ma'lumotlari va AI Insights **bir marta hisoblanib session ichida keshlanadi**; tab almashtirishda qayta hisoblanmaydi.
+- Grafiklar uchun **2 000 qator** namunasi ishlatiladi (100 000 qatorlik scatter endi 22 MB emas, ~0.24 MB gzip).
+- Login/ML: model 10 000 qator namunasida o'rgatiladi, cross-validation 3 000 qator va 3 katlamada; eng yaxshi model **ikkinchi marta qayta o'rgatilmaydi**.
+- Klasterlash: 10 000 qator namunasi, katta ma'lumotda `MiniBatchKMeans`, silhouette 2 000 nuqtada, Elbow eng ko'pi 8 ta K.
+- `/clean` endi faqat natija + kichik profil/preview qaytaradi; grafiklar `/charts/auto` orqali alohida olinadi.
+- JSON javoblar **gzip** bilan siqiladi; `debug=False` va sessiyalar 6 soat / 20 sessiya bilan cheklangan.
+- Fayl nomi va foydalanuvchi ma'lumotlari HTML'ga chiqarishda escape qilinadi; xato traceback'i brauzerga yuborilmaydi; 250 000 qator / 200 ustun chegarasi mavjud.
+
+(grafiklar, AI Insights va ML bashoratlari namuna asosida hisoblanadi — ya'ni taxminiy ko'rsatkich; asl ma'lumot va tozalash operatsiyalari to'liq qatorlarda bajariladi).
 
 ## Litsenziya
 

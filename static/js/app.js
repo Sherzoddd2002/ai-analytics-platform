@@ -3,6 +3,27 @@ let currentColumns = [];
 let currentPage = 1;
 let totalPages = 1;
 
+// Escape untrusted values coming from uploaded files before inserting into HTML.
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function renderStatsCards(p) {
+    const cards = [
+        { label: 'Qatorlar', value: Number(p.shape.rows).toLocaleString() },
+        { label: 'Ustunlar', value: p.shape.cols },
+        { label: 'Yetishmayotgan', value: Number(p.quality.total_missing).toLocaleString() },
+        { label: 'Dublikatlar', value: p.quality.duplicates },
+        { label: 'To\'liq qatorlar', value: Number(p.quality.complete_rows).toLocaleString() },
+        { label: 'Xotira', value: p.memory_usage },
+    ];
+    document.getElementById('stats-cards').innerHTML = cards.map(c =>
+        `<div class="stat-card"><div class="label">${escapeHtml(c.label)}</div><div class="value">${escapeHtml(c.value)}</div></div>`
+    ).join('');
+}
+
 // ===== Upload =====
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
@@ -33,13 +54,14 @@ function handleFile(file) {
             }
             sessionId = data.session_id;
             currentColumns = data.columns;
-            document.getElementById('file-info').innerHTML = `<b>${data.filename}</b><br>${data.shape.rows} qator × ${data.shape.cols} ustun`;
+            document.getElementById('file-info').innerHTML = `<b>${escapeHtml(data.filename)}</b><br>${data.shape.rows} qator × ${data.shape.cols} ustun`;
             document.getElementById('file-info').classList.remove('hidden');
             document.querySelectorAll('.nav-btn').forEach(b => b.disabled = false);
-            showToast('Fayl muvaffaqiyatli yuklandi!', 'success');
+            showToast(data.note || 'Fayl muvaffaqiyatli yuklandi!', data.note ? 'info' : 'success');
             renderDashboard(data);
             populateSelectors(data.columns);
-            switchTab('dashboard');
+            // Data is already in the upload response: don't re-fetch it.
+            switchTab('dashboard', true);
         })
         .catch(err => {
             document.getElementById('upload-progress').classList.add('hidden');
@@ -56,86 +78,56 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     });
 });
 
-function switchTab(tab) {
+function switchTab(tab, skipRefresh = false) {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     document.querySelector(`.nav-btn[data-tab="${tab}"]`).classList.add('active');
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.getElementById(`tab-${tab}`).classList.add('active');
-    if (tab === 'dashboard' && sessionId) refreshDashboard();
-    if (tab === 'data' && sessionId) refreshData();
-    if (tab === 'clean' && sessionId) refreshClean();
-    if (tab === 'insights' && sessionId) loadInsights();
+    if (skipRefresh || !sessionId) return;
+    if (tab === 'dashboard') refreshDashboard();
+    if (tab === 'data') loadPreview(currentPage);
+    if (tab === 'clean') refreshClean();
+    if (tab === 'insights') loadInsights();
 }
 
 // ===== Dashboard =====
 function renderDashboard(data) {
-    const p = data.profiling;
-    const cards = [
-        { label: 'Qatorlar', value: p.shape.rows.toLocaleString() },
-        { label: 'Ustunlar', value: p.shape.cols },
-        { label: 'Yetishmayotgan', value: p.quality.total_missing.toLocaleString() },
-        { label: 'Dublikatlar', value: p.quality.duplicates },
-        { label: 'To\'liq qatorlar', value: p.quality.complete_rows.toLocaleString() },
-        { label: 'Xotira', value: p.memory_usage },
-    ];
-    document.getElementById('stats-cards').innerHTML = cards.map(c =>
-        `<div class="stat-card"><div class="label">${c.label}</div><div class="value">${c.value}</div></div>`
-    ).join('');
+    renderStatsCards(data.profiling);
     renderCharts(data.auto_charts);
 }
 
 function refreshDashboard() {
+    // Server-side cache makes this a few KB instead of several MB.
     fetch('/profile', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ session_id: sessionId })
     }).then(r => r.json()).then(data => {
         if (data.error) return showToast(data.error, 'error');
-        const prof = data.profiling;
-        const cards = [
-            { label: 'Qatorlar', value: prof.shape.rows.toLocaleString() },
-            { label: 'Ustunlar', value: prof.shape.cols },
-            { label: 'Yetishmayotgan', value: prof.quality.total_missing.toLocaleString() },
-            { label: 'Dublikatlar', value: prof.quality.duplicates },
-            { label: 'To\'liq qatorlar', value: prof.quality.complete_rows.toLocaleString() },
-            { label: 'Xotira', value: prof.memory_usage },
-        ];
-        document.getElementById('stats-cards').innerHTML = cards.map(c =>
-            `<div class="stat-card"><div class="label">${c.label}</div><div class="value">${c.value}</div></div>`
-        ).join('');
-        fetch('/preview', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ session_id: sessionId, page: 1 })
-        }).then(r => r.json()).then(d => {
-            if (!d.error) renderCharts(null, d.preview);
-        });
-        // Auto charts
-        autoChartsRefresh();
+        renderStatsCards(data.profiling);
     });
 }
 
-function autoChartsRefresh() {
-    // Get auto charts by re-profiling
-    fetch('/columns', {
+function refreshCharts() {
+    return fetch('/charts/auto', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ session_id: sessionId })
-    }).then(r => r.json()).then(d => {
-        if (d.columns) {
-            currentColumns = d.columns.map(c => c.name);
-            populateSelectors(currentColumns);
-        }
+    }).then(r => r.json()).then(data => {
+        if (data.error) return showToast(data.error, 'error');
+        renderCharts(data.auto_charts);
     });
 }
 
-function renderCharts(charts, preview) {
+function renderCharts(charts) {
     if (charts) {
         const container = document.getElementById('auto-charts');
         container.innerHTML = charts.map(c =>
-            `<div class="chart-card"><div class="chart-title">${c.title}</div><div id="chart-${c.type}-${Math.random().toString(36).substr(2,6)}"></div></div>`
+            `<div class="chart-card"><div class="chart-title">${escapeHtml(c.title)}</div><div class="chart-plot"></div></div>`
         ).join('');
-        charts.forEach((c, i) => {
-            const el = container.querySelectorAll('.chart-card .chart-title')[i];
-            const plotEl = el.nextElementSibling;
-            Plotly.newPlot(plotEl, JSON.parse(c.chart).data, JSON.parse(c.chart).layout, {responsive: true});
+        // Parse once per chart and use static mode: much cheaper for Plotly.
+        container.querySelectorAll('.chart-card').forEach((card, i) => {
+            const parsed = JSON.parse(charts[i].chart);
+            Plotly.newPlot(card.querySelector('.chart-plot'), parsed.data, parsed.layout,
+                           {responsive: true, displaylogo: false, modeBarButtonsToRemove: ['lasso2d', 'select2d']});
         });
     }
 }
@@ -155,11 +147,14 @@ function loadPreview(page) {
         const p = data.preview;
         totalPages = p.total_pages;
         let html = '<thead><tr>';
-        p.columns.forEach(c => html += `<th>${c}</th>`);
+        p.columns.forEach(c => html += `<th>${escapeHtml(c)}</th>`);
         html += '</tr></thead><tbody>';
         p.data.forEach(row => {
             html += '<tr>';
-            p.columns.forEach(c => html += `<td title="${row[c] ?? ''}">${row[c] ?? '<span style="color:#666">NaN</span>'}</td>`);
+            p.columns.forEach(c => {
+                const val = row[c];
+                html += `<td title="${escapeHtml(val)}">${val === null ? '<span style="color:#666">NaN</span>' : escapeHtml(val)}</td>`;
+            });
             html += '</tr>';
         });
         html += '</tbody>';
@@ -179,7 +174,8 @@ function refreshClean() {
     }).then(r => r.json()).then(data => {
         if (data.error) return;
         const dropSel = document.getElementById('drop-col');
-        dropSel.innerHTML = data.columns.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        dropSel.innerHTML = data.columns.map(c =>
+            `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
         renderProfiling(data.columns);
     });
 }
@@ -194,12 +190,12 @@ function renderProfiling(columns) {
         rows += profRow('Sonli', c.is_numeric ? 'Ha' : 'Yoq');
         if (c.sample_values && c.sample_values.length)
             rows += profRow('Namuna', c.sample_values.map(v => String(v).substring(0, 30)).join(', '));
-        return `<div class="prof-col"><h4>${c.name}</h4>${rows}</div>`;
+        return `<div class="prof-col"><h4>${escapeHtml(c.name)}</h4>${rows}</div>`;
     }).join('');
 }
 
 function profRow(label, value) {
-    return `<div class="prof-row"><span>${label}</span><span>${value ?? '-'}</span></div>`;
+    return `<div class="prof-row"><span>${escapeHtml(label)}</span><span>${escapeHtml(value ?? '-')}</span></div>`;
 }
 
 function runClean(operations) {
@@ -209,9 +205,12 @@ function runClean(operations) {
     }).then(r => r.json()).then(data => {
         if (data.error) return showToast(data.error, 'error');
         const container = document.getElementById('clean-results');
-        container.innerHTML = data.results.map(r => `<div class="clean-result-item">${r}</div>`).join('');
+        container.innerHTML = data.results.map(r =>
+            `<div class="clean-result-item">${escapeHtml(r)}</div>`).join('');
         showToast('Tozalash bajarildi!', 'success');
         refreshClean();
+        renderStatsCards(data.profiling);
+        refreshCharts(); // rebuild dashboard charts from the cleaned data
     });
 }
 
@@ -219,15 +218,21 @@ function downloadData(format) {
     fetch('/download', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ session_id: sessionId, format })
-    }).then(r => r.blob()).then(blob => {
+    }).then(async r => {
+        if (!r.ok) {
+            const err = await r.json().catch(() => ({}));
+            throw new Error(err.error || `HTTP ${r.status}`);
+        }
+        return r.blob();
+    }).then(blob => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = `cleaned_data.${format}`;
         a.click();
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
         showToast('Yuklab olindi!', 'success');
-    });
+    }).catch(err => showToast('Xato: ' + err.message, 'error'));
 }
 
 // ===== Charts =====
@@ -239,7 +244,7 @@ function populateSelectors(columns) {
         const isMulti = el.multiple;
         const current = el.value;
         el.innerHTML = (isMulti ? '' : '<option value="">-- Tanlang --</option>') +
-            columns.map(c => `<option value="${c}">${c}</option>`).join('');
+            columns.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
         if (current) el.value = current;
     });
 }
@@ -290,7 +295,7 @@ function runMLPredict() {
         body: JSON.stringify(payload)
     }).then(r => r.json()).then(data => {
         if (data.error) {
-            document.getElementById('ml-results').innerHTML = `<div class="error-msg">${data.error}</div>`;
+            document.getElementById('ml-results').innerHTML = `<div class="error-msg">${escapeHtml(data.error)}</div>`;
             return;
         }
         renderMLResults(data);
@@ -315,12 +320,17 @@ function renderMLResults(data) {
     if (data.all_models && Object.keys(data.all_models).length > 1) {
         html += '<h4 style="margin:16px 0 8px">Barcha Modellar:</h4>';
         for (const [name, res] of Object.entries(data.all_models)) {
+            if (res.error) {
+                html += `<div class="ml-metric"><div class="label">${escapeHtml(name)}</div><div class="value" style="font-size:14px">${escapeHtml(res.error)}</div></div>`;
+                continue;
+            }
             const v = res.r2 !== undefined ? `R²=${res.r2.toFixed(4)}` : `Acc=${(res.accuracy * 100).toFixed(2)}%`;
-            html += `<div class="ml-metric"><div class="label">${name}</div><div class="value" style="font-size:16px">${v}</div></div>`;
+            html += `<div class="ml-metric"><div class="label">${escapeHtml(name)}</div><div class="value" style="font-size:16px">${v}</div></div>`;
         }
     }
     html += '<div id="ml-pred-chart" style="margin-top:16px"></div>';
     html += '<div id="ml-imp-chart" style="margin-top:16px"></div>';
+    if (data.report_chart) html += '<div id="ml-report-chart" style="margin-top:16px"></div>';
     document.getElementById('ml-results').innerHTML = html;
     if (data.prediction_chart) {
         const cd = JSON.parse(data.prediction_chart);
@@ -332,8 +342,6 @@ function renderMLResults(data) {
     }
     if (data.report_chart) {
         const cd = JSON.parse(data.report_chart);
-        html += '<div id="ml-report-chart" style="margin-top:16px"></div>';
-        document.getElementById('ml-results').innerHTML += '<div id="ml-report-chart" style="margin-top:16px"></div>';
         Plotly.newPlot('ml-report-chart', cd.data, cd.layout, {responsive: true});
     }
 }
@@ -347,7 +355,7 @@ function runCluster() {
         body: JSON.stringify({ session_id: sessionId, n_clusters: k, features: feats })
     }).then(r => r.json()).then(data => {
         if (data.error) {
-            document.getElementById('cluster-results').innerHTML = `<div class="error-msg">${data.error}</div>`;
+            document.getElementById('cluster-results').innerHTML = `<div class="error-msg">${escapeHtml(data.error)}</div>`;
             return;
         }
         let html = `<div class="ml-metric"><div class="label">Silhouette Score</div><div class="value">${data.silhouette_score.toFixed(4)}</div></div>`;
@@ -427,7 +435,7 @@ function loadInsights() {
         document.getElementById('insights-container').innerHTML = data.insights.map(i => `
             <div class="insight-card ${i.type}">
                 <div class="insight-icon">${icons[i.icon] || icons['database']}</div>
-                <div class="insight-content"><h4>${i.title}</h4><p>${i.text}</p></div>
+                <div class="insight-content"><h4>${escapeHtml(i.title)}</h4><p>${escapeHtml(i.text)}</p></div>
             </div>
         `).join('');
     });
