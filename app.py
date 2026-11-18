@@ -254,8 +254,8 @@ def generate_auto_charts(df):
     for col in numeric_cols[:4]:
         fig = _style(px.histogram(src, x=col, nbins=30,
                                   color_discrete_sequence=["#6366f1"]),
-                     f"Taqsimot: {col}")
-        charts.append({"title": f"Taqsimot: {col}", "type": "histogram",
+                     f"Distribution: {col}")
+        charts.append({"title": f"Distribution: {col}", "type": "histogram",
                        "chart": _fig_json(fig)})
 
     for col in cat_cols[:3]:
@@ -264,9 +264,9 @@ def generate_auto_charts(df):
             fig = go.Figure()
             fig.add_trace(go.Bar(x=tv.index.astype(str), y=tv.values,
                                  marker=dict(color="#10b981")))
-            _style(fig, f"Frekans: {col}")
+            _style(fig, f"Frequency: {col}")
             fig.update_xaxes(tickangle=-30)
-            charts.append({"title": f"Frekans: {col}", "type": "bar",
+            charts.append({"title": f"Frequency: {col}", "type": "bar",
                            "chart": _fig_json(fig)})
 
     corr_cols = numeric_cols[:20]
@@ -277,8 +277,8 @@ def generate_auto_charts(df):
             colorscale="RdBu", zmid=0,
             text=corr.values.round(2), texttemplate="%{text}",
             hovertemplate="%{x} vs %{y}: %{z:.3f}<extra></extra>"))
-        _style(fig, "Korrelyatsiya matrisasi", 350)
-        charts.append({"title": "Korrelyatsiya matrisasi", "type": "heatmap",
+        _style(fig, "Correlation Matrix", 350)
+        charts.append({"title": "Correlation Matrix", "type": "heatmap",
                        "chart": _fig_json(fig)})
 
     if len(numeric_cols) >= 2:
@@ -297,8 +297,8 @@ def generate_auto_charts(df):
             if len(tmp):
                 fig = _style(px.line(tmp, x=dt_col, y=num_col,
                                      color_discrete_sequence=["#ec4899"]),
-                             f"Vaqt qatori: {num_col} / {dt_col}")
-                charts.append({"title": f"Vaqt qatori: {num_col} / {dt_col}",
+                             f"Time Series: {num_col} / {dt_col}")
+                charts.append({"title": f"Time Series: {num_col} / {dt_col}",
                                "type": "line", "chart": _fig_json(fig)})
         except Exception:
             pass
@@ -307,8 +307,8 @@ def generate_auto_charts(df):
         fig = go.Figure()
         for c in numeric_cols[:6]:
             fig.add_trace(go.Box(y=src[c].dropna(), name=c))
-        _style(fig, "Box: sonli ustunlar", 320)
-        charts.append({"title": "Box: sonli ustunlar", "type": "box",
+        _style(fig, "Box: Numeric Columns", 320)
+        charts.append({"title": "Box: Numeric Columns", "type": "box",
                        "chart": _fig_json(fig)})
 
     return charts
@@ -351,7 +351,7 @@ def read_table(filepath, ext):
         return pd.read_excel(filepath)
     if ext == ".json":
         return pd.read_json(filepath)
-    raise ValueError(f"Format qo'llab-quvvatlanmaydi: {ext}")
+    raise ValueError(f"Unsupported format: {ext}")
 
 
 # ========================= ROUTES =========================
@@ -367,15 +367,15 @@ def upload_file():
         # A very early upload may arrive while the background warmup runs.
         _WARMUP_DONE.wait(timeout=20)
         if "file" not in request.files:
-            return jsonify({"error": "Fayl topilmadi"}), 400
+            return jsonify({"error": "No file provided"}), 400
         file = request.files["file"]
         if not file.filename:
-            return jsonify({"error": "Fayl tanlanmagan"}), 400
+            return jsonify({"error": "No file selected"}), 400
 
         filename = secure_filename(os.path.basename(file.filename))
         ext = os.path.splitext(filename)[1].lower()
         if ext not in (".csv", ".xlsx", ".xls", ".json", ".tsv"):
-            return jsonify({"error": "Faqat CSV, Excel, JSON yoki TSV"}), 400
+            return jsonify({"error": "Only CSV, Excel, JSON, or TSV files are supported"}), 400
 
         filepath = os.path.join(app.config["UPLOAD_FOLDER"], f"{uuid.uuid4().hex}_{filename}")
         file.save(filepath)
@@ -387,12 +387,12 @@ def upload_file():
 
         if df.empty:
             _remove_file(filepath)
-            return jsonify({"error": "Fayl bo'sh yoki ma'lumot yo'q"}), 400
+            return jsonify({"error": "File is empty or contains no data"}), 400
 
         note = None
         if len(df) > MAX_STORED_ROWS or len(df.columns) > MAX_STORED_COLS:
-            note = (f"Fayl qisqartirildi: {len(df):,} qator / {len(df.columns)} ustundan "
-                    f"{min(len(df), MAX_STORED_ROWS):,} / {min(len(df.columns), MAX_STORED_COLS)} gacha.")
+            note = (f"File truncated: {len(df):,} rows / {len(df.columns)} columns to "
+                    f"{min(len(df), MAX_STORED_ROWS):,} / {min(len(df.columns), MAX_STORED_COLS)}.")
             df = df.iloc[:MAX_STORED_ROWS, :MAX_STORED_COLS].copy()
 
         sid = uuid.uuid4().hex
@@ -432,7 +432,7 @@ def get_profiling():
     try:
         sess = _get_session(_body().get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
+            return jsonify({"error": "Session not found", "session_expired": True}), 400
         return jsonify({"profiling": cached(
             sess, "profiling", lambda: generate_data_profiling(sess["df"]))})
     except Exception as e:
@@ -445,7 +445,7 @@ def get_preview():
         d = _body()
         sess = _get_session(d.get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
+            return jsonify({"error": "Session not found", "session_expired": True}), 400
         key = f"preview:{d.get('page', 1)}:{d.get('per_page', 50)}"
         return jsonify({"preview": cached(
             sess, key,
@@ -459,7 +459,7 @@ def get_columns():
     try:
         sess = _get_session(_body().get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
+            return jsonify({"error": "Session not found", "session_expired": True}), 400
         return jsonify({"columns": cached(
             sess, "columns", lambda: get_columns_info(sess["df"]))})
     except Exception as e:
@@ -471,7 +471,7 @@ def auto_charts():
     try:
         sess = _get_session(_body().get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
+            return jsonify({"error": "Session not found", "session_expired": True}), 400
         return jsonify({"auto_charts": cached(
             sess, "charts", lambda: generate_auto_charts(sess["df"]))})
     except Exception as e:
@@ -484,7 +484,7 @@ def clean_data():
         d = _body()
         sess = _get_session(d.get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
+            return jsonify({"error": "Session not found", "session_expired": True}), 400
         df = sess["df"].copy()
         operations = d.get("operations", [])
         results = []
@@ -493,7 +493,7 @@ def clean_data():
             if t == "drop_duplicates":
                 before = len(df)
                 df = df.drop_duplicates()
-                results.append(f"Dublikatlar o'chirildi: {before - len(df)} ta qator")
+                results.append(f"Duplicates removed: {before - len(df)} rows")
             elif t == "drop_missing":
                 thr = float(op.get("threshold", 0.5))
                 bc = df.shape[1]
@@ -501,7 +501,7 @@ def clean_data():
                 dc = bc - df.shape[1]
                 br = len(df)
                 df = df.dropna()
-                results.append(f"Yetishmayotgan tozalandi: {dc} ustun, {br - len(df)} qator")
+                results.append(f"Missing data removed: {dc} columns, {br - len(df)} rows")
             elif t == "fill_missing":
                 strat = op.get("strategy", "mean")
                 filled = 0
@@ -514,7 +514,7 @@ def clean_data():
                             v = modes.iloc[0] if len(modes) else "Unknown"
                         filled += int(df[col].isnull().sum())
                         df[col] = df[col].fillna(v)
-                results.append(f"Yetishmayotgan to'ldirildi: {filled} ta ({strat})")
+                results.append(f"Missing values filled: {filled} ({strat})")
             elif t == "remove_outliers":
                 m = op.get("method", "iqr")
                 removed = 0
@@ -531,7 +531,7 @@ def clean_data():
                         z = np.abs(stats.zscore(sub))
                         keep_idx = sub.index[z < float(op.get("threshold", 3))]
                         df = df.loc[df.index.isin(keep_idx) | df[col].isnull()]
-                results.append(f"Anomal qiymatlar: {removed} ta ({m})")
+                results.append(f"Outliers removed: {removed} ({m})")
             elif t == "normalize":
                 m = op.get("method", "minmax")
                 for col in df.select_dtypes(include=[np.number]).columns:
@@ -543,7 +543,7 @@ def clean_data():
                         mu, sd = df[col].mean(), df[col].std()
                         if sd > 0:
                             df[col] = (df[col] - mu) / sd
-                results.append(f"Normalizatsiya: {m}")
+                results.append(f"Normalization: {m}")
             elif t == "encode_categorical":
                 m = op.get("method", "label")
                 for col in list(df.select_dtypes(include=["object", "category"]).columns):
@@ -552,17 +552,17 @@ def clean_data():
                     elif m == "onehot":
                         dummies = pd.get_dummies(df[col], prefix=str(col), drop_first=True)
                         df = pd.concat([df.drop(columns=[col]), dummies], axis=1)
-                results.append(f"Kategoriyali kodlandi: {m}")
+                results.append(f"Categorical encoding: {m}")
             elif t == "drop_column":
                 c = op.get("column")
                 if c in df.columns:
                     df = df.drop(columns=[c])
-                    results.append(f"Ustun o'chirildi: {c}")
+                    results.append(f"Column dropped: {c}")
             elif t == "rename_column":
                 o, n = op.get("old_name"), op.get("new_name")
                 if o in df.columns:
                     df = df.rename(columns={o: n})
-                    results.append(f"Nom o'zgartirildi: {o} -> {n}")
+                    results.append(f"Column renamed: {o} -> {n}")
             elif t == "change_type":
                 c, nt = op.get("column"), op.get("new_type")
                 if c in df.columns:
@@ -575,9 +575,9 @@ def clean_data():
                             df[c] = df[c].astype(str)
                         elif nt == "datetime":
                             df[c] = pd.to_datetime(df[c], errors="coerce")
-                        results.append(f"Tur o'zgartirildi: {c} -> {nt}")
+                        results.append(f"Type changed: {c} -> {nt}")
                     except Exception as ex:
-                        results.append(f"Xato ({c}): {ex}")
+                        results.append(f"Error ({c}): {ex}")
 
         sess["df"] = df
         sess["history"].append({
@@ -603,7 +603,7 @@ def create_chart():
         d = _body()
         sess = _get_session(d.get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
+            return jsonify({"error": "Session not found", "session_expired": True}), 400
         src = _sample(sess["df"], CUSTOM_CHART_SAMPLE_ROWS)
         ct = d.get("chart_type")
         # The UI sends "" for optional selects; Plotly would treat it as a
@@ -648,7 +648,7 @@ def create_chart():
                     colorscale="RdBu", zmid=0,
                     text=corr.values.round(3), texttemplate="%{text}",
                     hovertemplate="%{x} vs %{y}: %{z:.3f}<extra></extra>"))
-                fig.update_layout(title=title or "Korrelyatsiya")
+                fig.update_layout(title=title or "Correlation")
         elif ct == "scatter3d":
             fig = px.scatter_3d(src, x=x, y=y, z=z, color=cc, title=title or "3D")
         elif ct == "area":
@@ -660,7 +660,7 @@ def create_chart():
             path = [x, cc] if cc else [x]
             fig = px.treemap(src, path=path, values=y if y else None, title=title or "Treemap")
         else:
-            return jsonify({"error": f"Noma'lum grafik: {ct}"}), 400
+            return jsonify({"error": f"Unknown chart type: {ct}"}), 400
 
         if fig:
             fig.update_layout(template="plotly_dark", plot_bgcolor="rgba(0,0,0,0)",
@@ -668,7 +668,7 @@ def create_chart():
                               font=dict(color="#e0e0e0", size=12),
                               margin=dict(l=40, r=20, t=50, b=40))
             return jsonify({"chart": _fig_json(fig)})
-        return jsonify({"error": "Grafik yaratilmadi"}), 400
+        return jsonify({"error": "Chart could not be created"}), 400
     except Exception as e:
         return _fail(e)
 
@@ -677,7 +677,7 @@ def _prepare_xy(sess, d):
     df = _sample(sess["df"], ML_SAMPLE_ROWS)
     target = d.get("target")
     if target not in df.columns:
-        raise ValueError(f"Maqsad ustun topilmadi: {target}")
+        raise ValueError(f"Target column not found: {target}")
     ptype = d.get("problem_type", "auto")
     if ptype == "auto":
         ratio = df[target].nunique() / max(len(df), 1)
@@ -730,7 +730,7 @@ def ml_predict():
         d = _body()
         sess = _get_session(d.get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
+            return jsonify({"error": "Session not found", "session_expired": True}), 400
         X, y, ptype, class_names = _prepare_xy(sess, d)
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=float(d.get("test_size", 0.2)), random_state=42)
@@ -776,7 +776,7 @@ def ml_predict():
             except Exception as ex:
                 all_res[name] = {"error": str(ex)[:120]}
         if best_model is None:
-            return jsonify({"error": "Hech bir model o'rgatilmadi", "models": all_res}), 400
+            return jsonify({"error": "No model could be trained", "models": all_res}), 400
 
         # No second full fit: best_model is already fitted.
         y_pred = best_model.predict(X_test)
@@ -817,14 +817,14 @@ def ml_predict():
             }
             pred_fig = go.Figure()
             pred_fig.add_trace(go.Scatter(x=y_test, y=y_pred, mode="markers",
-                                          name="Bashorat vs Haqiqiy",
+                                          name="Predicted vs Actual",
                                           marker=dict(color="#6366f1", size=6, opacity=0.6)))
             lo = float(min(y_test.min(), y_pred.min()))
             hi = float(max(y_test.max(), y_pred.max()))
             pred_fig.add_trace(go.Scatter(x=[lo, hi], y=[lo, hi], mode="lines",
                                           name="Ideal", line=dict(color="#ef4444", dash="dash")))
-            pred_fig.update_layout(title="Bashorat vs Haqiqiy", xaxis_title="Haqiqiy",
-                                   yaxis_title="Bashorat", template="plotly_dark",
+            pred_fig.update_layout(title="Predicted vs Actual", xaxis_title="Actual",
+                                   yaxis_title="Predicted", template="plotly_dark",
                                    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
                                    font=dict(color="#e0e0e0"))
             response["prediction_chart"] = _fig_json(pred_fig)
@@ -840,7 +840,7 @@ def ml_predict():
             for metric in ("precision", "recall", "f1-score"):
                 rep_fig.add_trace(go.Bar(name=metric, x=classes,
                                          y=[report[c].get(metric, 0) for c in classes]))
-            rep_fig.update_layout(barmode="group", title="Klassifikatsiya hisoboti",
+            rep_fig.update_layout(barmode="group", title="Classification Report",
                                   template="plotly_dark", plot_bgcolor="rgba(0,0,0,0)",
                                   paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#e0e0e0"))
             response["report_chart"] = _fig_json(rep_fig)
@@ -855,13 +855,13 @@ def ml_cluster():
         d = _body()
         sess = _get_session(d.get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
+            return jsonify({"error": "Session not found", "session_expired": True}), 400
         k = int(d.get("n_clusters", 3))
         features = d.get("features") or []
         src = _sample(sess["df"], CLUSTER_SAMPLE_ROWS)
         X = src[features].copy() if features else src.select_dtypes(include=[np.number]).copy()
         if X.empty:
-            return jsonify({"error": "Klasterlash uchun sonli ustun kerak"}), 400
+            return jsonify({"error": "At least one numeric column is required for clustering"}), 400
         for col in X.columns:
             if pd.api.types.is_object_dtype(X[col]) or str(X[col].dtype) == "category":
                 X[col] = pd.factorize(X[col].astype(str))[0]
@@ -886,14 +886,14 @@ def ml_cluster():
         X_pca = pca.fit_transform(X_s)
         if X_pca.shape[1] >= 3:
             fig = px.scatter_3d(x=X_pca[:, 0], y=X_pca[:, 1], z=X_pca[:, 2],
-                                color=clusters.astype(str), title=f"Klasterlash (K={k})",
+                                color=clusters.astype(str), title=f"Clustering (K={k})",
                                 color_discrete_sequence=px.colors.qualitative.Set2)
         else:
             fig = px.scatter(x=X_pca[:, 0],
                              y=X_pca[:, 1] if X_pca.shape[1] > 1 else [0] * len(X_pca),
-                             color=clusters.astype(str), title=f"Klasterlash (K={k})",
+                             color=clusters.astype(str), title=f"Clustering (K={k})",
                              color_discrete_sequence=px.colors.qualitative.Set2)
-        _style(fig, f"Klasterlash (K={k})")
+        _style(fig, f"Clustering (K={k})")
         chart = _fig_json(fig)
 
         k_max = min(8, max(2, len(X_s) - 1))
@@ -920,7 +920,7 @@ def ml_cluster():
                 if pd.api.types.is_numeric_dtype(tmp[col]):
                     v = cd[col].mean()
                     entry[f"{col}_mean"] = float(v) if pd.notna(v) else 0.0
-            summary[f"Klaster {c}"] = entry
+            summary[f"Cluster {c}"] = entry
 
         return jsonify({
             "success": True, "n_clusters": k, "silhouette_score": sil,
@@ -938,7 +938,7 @@ def statistics():
         d = _body()
         sess = _get_session(d.get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
+            return jsonify({"error": "Session not found", "session_expired": True}), 400
         df = sess["df"]
         src = _sample(df, CUSTOM_CHART_SAMPLE_ROWS)
         at = d.get("analysis_type")
@@ -947,7 +947,7 @@ def statistics():
         if at == "correlation":
             ndf = src.select_dtypes(include=[np.number]).iloc[:, :20]
             if len(ndf.columns) < 2:
-                return jsonify({"error": "Kamida 2 sonli ustun kerak"}), 400
+                return jsonify({"error": "At least 2 numeric columns are required"}), 400
             corr = ndf.corr()
             fig = go.Figure(data=go.Heatmap(
                 z=corr.values, x=corr.columns, y=corr.columns,
@@ -975,7 +975,7 @@ def statistics():
                 results["skewness"] = float(stats.skew(cd))
                 results["kurtosis"] = float(stats.kurtosis(cd))
                 fig = go.Figure()
-                fig.add_trace(go.Histogram(x=cd, name="Haqiqiy", opacity=0.7,
+                fig.add_trace(go.Histogram(x=cd, name="Actual", opacity=0.7,
                                            marker_color="#6366f1"))
                 mu, sd = cd.mean(), cd.std()
                 if sd > 0 and len(cd):
@@ -983,7 +983,7 @@ def statistics():
                     pdf = stats.norm.pdf(xr, mu, sd) * len(cd) * (float(cd.max()) - float(cd.min())) / 30
                     fig.add_trace(go.Scatter(x=xr, y=pdf, name="Normal",
                                              line=dict(color="#ef4444", width=2)))
-                _style(fig, f"Taqsimot: {c1}")
+                _style(fig, f"Distribution: {c1}")
                 results["chart"] = _fig_json(fig)
         return jsonify({"success": True, "results": results})
     except Exception as e:
@@ -996,7 +996,7 @@ def ai_insights():
         d = _body()
         sess = _get_session(d.get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
+            return jsonify({"error": "Session not found", "session_expired": True}), 400
         if "insights" not in sess["cache"]:
             sess["cache"]["insights"] = _build_insights(sess["df"])
         return jsonify({"insights": sess["cache"]["insights"]})
@@ -1010,8 +1010,8 @@ def _build_insights(df):
     nc = src.select_dtypes(include=[np.number]).columns.tolist()
     cc = src.select_dtypes(include=["object", "category"]).columns.tolist()
     insights.append({
-        "type": "info", "icon": "database", "title": "Ma'lumot hajmi",
-        "text": f"Dataset {df.shape[0]:,} qator va {df.shape[1]} ustun. {len(nc)} sonli, {len(cc)} kategoriyali.",
+        "type": "info", "icon": "database", "title": "Dataset size",
+        "text": f"Dataset has {df.shape[0]:,} rows and {df.shape[1]} columns: {len(nc)} numeric, {len(cc)} categorical.",
     })
     missing = src.isnull().sum()
     if missing.sum() > 0:
@@ -1019,19 +1019,19 @@ def _build_insights(df):
         wp = missing.max() / max(len(src), 1) * 100
         insights.append({
             "type": "warning", "icon": "alert-triangle",
-            "title": "Yetishmayotgan ma'lumot",
-            "text": f"Namunada {missing.sum():,} yetishmayotgan. Eng yomon: '{wc}' ({wp:.1f}%).",
+            "title": "Missing data",
+            "text": f"The sample contains {missing.sum():,} missing values. Worst column: '{wc}' ({wp:.1f}%).",
         })
     else:
         insights.append({
             "type": "success", "icon": "check-circle",
-            "title": "Ma'lumot to'liqligi", "text": "Yetishmayotgan qiymatlar yo'q.",
+            "title": "Data completeness", "text": "No missing values.",
         })
     dup = src.duplicated().sum()
     if dup:
         insights.append({
-            "type": "warning", "icon": "copy", "title": "Dublikatlar",
-            "text": f"Namunada {dup} dublikat qator ({dup / max(len(src), 1) * 100:.1f}%).",
+            "type": "warning", "icon": "copy", "title": "Duplicates",
+            "text": f"The sample contains {dup} duplicate rows ({dup / max(len(src), 1) * 100:.1f}%).",
         })
 
     if len(nc) >= 2:
@@ -1045,18 +1045,18 @@ def _build_insights(df):
         pairs.sort(key=lambda p: p[2], reverse=True)
         if pairs and pairs[0][2] > 0.5:
             p = pairs[0]
-            strength = "kuchli" if p[2] > 0.7 else "o'rtacha"
-            direction = "musbat" if p[3] > 0 else "manfiy"
+            strength = "strong" if p[2] > 0.7 else "moderate"
+            direction = "positive" if p[3] > 0 else "negative"
             insights.append({
                 "type": "info", "icon": "trending-up", "title": "Korrelyatsiya",
-                "text": f"{strength} {direction}: '{p[0]}' va '{p[1]}' (r={p[3]:.3f}).",
+                "text": f"{strength} {direction} correlation between '{p[0]}' and '{p[1]}' (r={p[3]:.3f}).",
             })
     for col in cc:
         if src[col].nunique() > 50:
             insights.append({
                 "type": "warning", "icon": "layers",
-                "title": f"Yuqori kardinallik: {col}",
-                "text": f"'{col}' ustunida {src[col].nunique()} noyob qiymat.",
+                "title": f"High cardinality: {col}",
+                "text": f"Column '{col}' has {src[col].nunique()} unique values.",
             })
             break
 
@@ -1067,17 +1067,17 @@ def _build_insights(df):
         oc += int(((src[col] < q1 - 1.5 * iqr) | (src[col] > q3 + 1.5 * iqr)).sum())
     if oc:
         insights.append({
-            "type": "warning", "icon": "zap", "title": "Anomal qiymatlar",
-            "text": f"IQR bo'yicha ~{oc} anomal qiymat (namunada).",
+            "type": "warning", "icon": "zap", "title": "Outliers",
+            "text": f"Approximately {oc} outliers detected by the IQR rule (sample).",
         })
     for col in nc:
         sk = src[col].skew()
         if pd.notna(sk) and abs(sk) > 2:
-            side = "o'ng" if sk > 0 else "chap"
+            side = "right" if sk > 0 else "left"
             insights.append({
                 "type": "info", "icon": "bar-chart",
-                "title": f"Noto'g'ri taqsimot: {col}",
-                "text": f"'{col}' {side} tomonga og'gan (skew={sk:.2f}).",
+                "title": f"Skewed distribution: {col}",
+                "text": f"'{col}' is skewed to the {side} (skew={sk:.2f}).",
             })
             break
 
@@ -1099,8 +1099,8 @@ def _build_insights(df):
                 continue
         if best_t and best_r > 0.3:
             insights.append({
-                "type": "success", "icon": "target", "title": "ML tavsiyasi",
-                "text": f"'{best_t}' bashorat qilish uchun yaxshi (R2~{best_r:.2f}).",
+                "type": "success", "icon": "target", "title": "ML recommendation",
+                "text": f"'{best_t}' is a good prediction target (R2 ~ {best_r:.2f}).",
             })
     return insights
 
@@ -1111,10 +1111,10 @@ def download_data():
         d = _body()
         sess = _get_session(d.get("session_id"))
         if not sess:
-            return jsonify({"error": "Sessiya topilmadi", "session_expired": True}), 400
+            return jsonify({"error": "Session not found", "session_expired": True}), 400
         fmt = d.get("format", "csv")
         if fmt not in ("csv", "xlsx", "json"):
-            return jsonify({"error": "Noto'g'ri format"}), 400
+            return jsonify({"error": "Invalid format"}), 400
         base = os.path.splitext(os.path.basename(sess["filename"]))[0] or "data"
         fp = os.path.join(
             app.config["UPLOAD_FOLDER"],

@@ -12,12 +12,12 @@ function escapeHtml(value) {
 
 function renderStatsCards(p) {
     const cards = [
-        { label: 'Qatorlar', value: Number(p.shape.rows).toLocaleString() },
-        { label: 'Ustunlar', value: p.shape.cols },
-        { label: 'Yetishmayotgan', value: Number(p.quality.total_missing).toLocaleString() },
-        { label: 'Dublikatlar', value: p.quality.duplicates },
-        { label: 'To\'liq qatorlar', value: Number(p.quality.complete_rows).toLocaleString() },
-        { label: 'Xotira', value: p.memory_usage },
+        { label: 'Rows', value: Number(p.shape.rows).toLocaleString() },
+        { label: 'Columns', value: p.shape.cols },
+        { label: 'Missing', value: Number(p.quality.total_missing).toLocaleString() },
+        { label: 'Duplicates', value: p.quality.duplicates },
+        { label: 'Complete rows', value: Number(p.quality.complete_rows).toLocaleString() },
+        { label: 'Memory', value: p.memory_usage },
     ];
     document.getElementById('stats-cards').innerHTML = cards.map(c =>
         `<div class="stat-card"><div class="label">${escapeHtml(c.label)}</div><div class="value">${escapeHtml(c.value)}</div></div>`
@@ -25,7 +25,7 @@ function renderStatsCards(p) {
 }
 
 // A server restart drops in-memory sessions. Reset the UI instead of leaving
-// the user stuck with dead buttons and "Sessiya topilmadi" toasts.
+// the user stuck with dead buttons and "Session not found" toasts.
 function resetSession(message) {
     sessionId = null;
     currentColumns = [];
@@ -40,13 +40,13 @@ function resetSession(message) {
         if (el) el.innerHTML = '';
     });
     switchTab('upload', true);
-    showToast(message || 'Sessiya tugadi. Faylni qaytadan yuklang.', 'error');
+    showToast(message || 'Session expired. Please upload your file again.', 'error');
 }
 
 function handleDataError(data) {
     if (!data || !data.error) return false;
-    if (data.session_expired || String(data.error).includes('Sessiya topilmadi')) {
-        resetSession('Sessiya tugadi (server qayta ishga tushgan). Faylni qaytadan yuklang.');
+    if (data.session_expired || String(data.error).includes('Session not found')) {
+        resetSession('Session expired (the server restarted). Please upload your file again.');
     } else {
         showToast(data.error, 'error');
     }
@@ -83,10 +83,10 @@ function handleFile(file) {
             }
             sessionId = data.session_id;
             currentColumns = data.columns;
-            document.getElementById('file-info').innerHTML = `<b>${escapeHtml(data.filename)}</b><br>${data.shape.rows} qator × ${data.shape.cols} ustun`;
+            document.getElementById('file-info').innerHTML = `<b>${escapeHtml(data.filename)}</b><br>${data.shape.rows} rows × ${data.shape.cols} columns`;
             document.getElementById('file-info').classList.remove('hidden');
             document.querySelectorAll('.nav-btn').forEach(b => b.disabled = false);
-            showToast(data.note || 'Fayl muvaffaqiyatli yuklandi!', data.note ? 'info' : 'success');
+            showToast(data.note || 'File uploaded successfully!', data.note ? 'info' : 'success');
             renderDashboard(data);
             populateSelectors(data.columns);
             // Data is already in the upload response: don't re-fetch it.
@@ -94,7 +94,7 @@ function handleFile(file) {
         })
         .catch(err => {
             document.getElementById('upload-progress').classList.add('hidden');
-            document.getElementById('upload-error').textContent = 'Xato: ' + err.message;
+            document.getElementById('upload-error').textContent = 'Error: ' + err.message;
             document.getElementById('upload-error').classList.remove('hidden');
         });
 }
@@ -191,7 +191,7 @@ function loadPreview(page) {
         });
         html += '</tbody>';
         document.getElementById('data-table').innerHTML = html;
-        document.getElementById('page-info').textContent = `${p.page} / ${p.total_pages} (${p.total} ta)`;
+        document.getElementById('page-info').textContent = `${p.page} / ${p.total_pages} (${p.total} rows)`;
     });
 }
 
@@ -216,12 +216,12 @@ function renderProfiling(columns) {
     const container = document.getElementById('profiling-display');
     container.innerHTML = columns.map(c => {
         let rows = '';
-        rows += profRow('Tip', c.dtype);
-        rows += profRow('Noyob', c.n_unique);
-        rows += profRow('Yetishmayotgan', `${c.n_missing} (${(c.n_missing / (c.n_unique + c.n_missing || 1) * 100).toFixed(1)}%)`);
-        rows += profRow('Sonli', c.is_numeric ? 'Ha' : 'Yoq');
+        rows += profRow('Type', c.dtype);
+        rows += profRow('Unique', c.n_unique);
+        rows += profRow('Missing', `${c.n_missing} (${(c.n_missing / (c.n_unique + c.n_missing || 1) * 100).toFixed(1)}%)`);
+        rows += profRow('Numeric', c.is_numeric ? 'Yes' : 'No');
         if (c.sample_values && c.sample_values.length)
-            rows += profRow('Namuna', c.sample_values.map(v => String(v).substring(0, 30)).join(', '));
+            rows += profRow('Sample', c.sample_values.map(v => String(v).substring(0, 30)).join(', '));
         return `<div class="prof-col"><h4>${escapeHtml(c.name)}</h4>${rows}</div>`;
     }).join('');
 }
@@ -239,7 +239,7 @@ function runClean(operations) {
         const container = document.getElementById('clean-results');
         container.innerHTML = data.results.map(r =>
             `<div class="clean-result-item">${escapeHtml(r)}</div>`).join('');
-        showToast('Tozalash bajarildi!', 'success');
+        showToast('Cleaning complete!', 'success');
         refreshClean();
         renderStatsCards(data.profiling);
         refreshCharts(); // rebuild dashboard charts from the cleaned data
@@ -263,8 +263,8 @@ function downloadData(format) {
         a.download = `cleaned_data.${format}`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
-        showToast('Yuklab olindi!', 'success');
-    }).catch(err => showToast('Xato: ' + err.message, 'error'));
+        showToast('Downloaded!', 'success');
+    }).catch(err => showToast('Error: ' + err.message, 'error'));
 }
 
 // ===== Charts =====
@@ -275,7 +275,7 @@ function populateSelectors(columns) {
         if (!el) return;
         const isMulti = el.multiple;
         const current = el.value;
-        el.innerHTML = (isMulti ? '' : '<option value="">-- Tanlang --</option>') +
+        el.innerHTML = (isMulti ? '' : '<option value="">-- Select --</option>') +
             columns.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
         if (current) el.value = current;
     });
@@ -321,8 +321,8 @@ function runMLPredict() {
         problem_type: document.getElementById('ml-problem').value,
         test_size: parseInt(document.getElementById('ml-test-size').value) / 100,
     };
-    if (!payload.target) return showToast('Maqsad ustun tanlang!', 'error');
-    document.getElementById('ml-results').innerHTML = '<div class="spinner"></div><p>Model o\'rgatilmoqda...</p>';
+    if (!payload.target) return showToast('Select a target column!', 'error');
+    document.getElementById('ml-results').innerHTML = '<div class="spinner"></div><p>Training model...</p>';
     fetch('/ml/predict', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload)
@@ -339,7 +339,7 @@ function runMLPredict() {
 function renderMLResults(data) {
     const m = data.metrics;
     let html = `<h3>${data.model_name}</h3>`;
-    html += `<p style="color:var(--text-dim);margin:8px 0">${data.problem_type === 'classification' ? 'Klassifikatsiya' : 'Regressiya'} | ${data.n_train} train / ${data.n_test} test | ${data.n_features} xususiyat</p>`;
+    html += `<p style="color:var(--text-dim);margin:8px 0">${data.problem_type === 'classification' ? 'Classification' : 'Regression'} | ${data.n_train} train / ${data.n_test} test | ${data.n_features} features</p>`;
     if (data.problem_type === 'regression') {
         html += `<div class="ml-metric"><div class="label">R² Score</div><div class="value">${m.r2.toFixed(4)}</div></div>`;
         html += `<div class="ml-metric"><div class="label">RMSE</div><div class="value">${m.rmse.toFixed(4)}</div></div>`;
@@ -352,7 +352,7 @@ function renderMLResults(data) {
     }
     // All models comparison
     if (data.all_models && Object.keys(data.all_models).length > 1) {
-        html += '<h4 style="margin:16px 0 8px">Barcha Modellar:</h4>';
+        html += '<h4 style="margin:16px 0 8px">All Models:</h4>';
         for (const [name, res] of Object.entries(data.all_models)) {
             if (res.error) {
                 html += `<div class="ml-metric"><div class="label">${escapeHtml(name)}</div><div class="value" style="font-size:14px">${escapeHtml(res.error)}</div></div>`;
@@ -383,7 +383,7 @@ function renderMLResults(data) {
 function runCluster() {
     const k = parseInt(document.getElementById('cluster-k').value);
     const feats = Array.from(document.getElementById('cluster-features').selectedOptions).map(o => o.value);
-    document.getElementById('cluster-results').innerHTML = '<div class="spinner"></div><p>Klasterlash...</p>';
+    document.getElementById('cluster-results').innerHTML = '<div class="spinner"></div><p>Clustering...</p>';
     fetch('/ml/cluster', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ session_id: sessionId, n_clusters: k, features: feats })
@@ -396,7 +396,7 @@ function runCluster() {
         let html = `<div class="ml-metric"><div class="label">Silhouette Score</div><div class="value">${data.silhouette_score.toFixed(4)}</div></div>`;
         html += '<div id="cluster-chart" style="margin-top:16px"></div>';
         html += '<div id="elbow-chart" style="margin-top:16px"></div>';
-        html += '<h4 style="margin:16px 0 8px">Klaster Xulosasi:</h4>';
+        html += '<h4 style="margin:16px 0 8px">Cluster Summary:</h4>';
         for (const [name, info] of Object.entries(data.cluster_summary)) {
             html += `<div class="ml-metric"><div class="label">${name}</div><div class="value" style="font-size:16px">${info.size} (${info.percentage.toFixed(1)}%)</div></div>`;
         }
@@ -429,17 +429,17 @@ function runStats() {
         if (r.t_statistic !== undefined) {
             html += `<div class="ml-metric"><div class="label">T-Statistic</div><div class="value">${r.t_statistic.toFixed(4)}</div></div>`;
             html += `<div class="ml-metric"><div class="label">P-Value</div><div class="value">${r.p_value.toFixed(4)}</div></div>`;
-            html += `<div class="ml-metric"><div class="label">Ahamiyatli (p<0.05)</div><div class="value">${r.significant ? 'Ha' : 'Yoq'}</div></div>`;
+            html += `<div class="ml-metric"><div class="label">Significant (p<0.05)</div><div class="value">${r.significant ? 'Yes' : 'No'}</div></div>`;
         }
         if (r.skewness !== undefined) {
             html += `<div class="ml-metric"><div class="label">Skewness</div><div class="value">${r.skewness.toFixed(4)}</div></div>`;
             html += `<div class="ml-metric"><div class="label">Kurtosis</div><div class="value">${r.kurtosis.toFixed(4)}</div></div>`;
             if (r.shapiro_stat !== undefined) {
                 html += `<div class="ml-metric"><div class="label">Shapiro Stat</div><div class="value">${r.shapiro_stat.toFixed(4)}</div></div>`;
-                html += `<div class="ml-metric"><div class="label">Normal Taqsimot</div><div class="value">${r.normal ? 'Ha' : 'Yoq'}</div></div>`;
+                html += `<div class="ml-metric"><div class="label">Normal Distribution</div><div class="value">${r.normal ? 'Yes' : 'No'}</div></div>`;
             }
         }
-        document.getElementById('stats-results').innerHTML = html || '<p>Tahlil natijasi yoq</p>';
+        document.getElementById('stats-results').innerHTML = html || '<p>No analysis results</p>';
         if (r.chart) {
             const cd = JSON.parse(r.chart);
             Plotly.newPlot('stats-chart', cd.data, cd.layout, {responsive: true, displaylogo: false});

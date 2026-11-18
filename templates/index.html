@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,7 +20,7 @@
         <nav class="nav">
             <button class="nav-btn active" data-tab="upload">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                Fayl Yuklash
+                File Upload
             </button>
             <button class="nav-btn" data-tab="dashboard" disabled>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
@@ -28,15 +28,15 @@
             </button>
             <button class="nav-btn" data-tab="data" disabled>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-                Ma'lumotlar
+                Data
             </button>
             <button class="nav-btn" data-tab="clean" disabled>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-                Tozalash
+                Clean
             </button>
             <button class="nav-btn" data-tab="charts" disabled>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                Grafiklar
+                Charts
             </button>
             <button class="nav-btn" data-tab="ml" disabled>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
@@ -44,7 +44,7 @@
             </button>
             <button class="nav-btn" data-tab="stats" disabled>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                Statistika
+                Statistics
             </button>
             <button class="nav-btn" data-tab="insights" disabled>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
@@ -62,22 +62,22 @@
         <section id="tab-upload" class="tab-content active">
             <div class="upload-container">
                 <h1>AI Analytics Platform</h1>
-                <p class="subtitle">Fayl yuklang va professional analizni boshlang</p>
+                <p class="subtitle">Upload a file and start professional analysis</p>
                 <div id="drop-zone" class="drop-zone">
                     <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5">
                         <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                     </svg>
-                    <h3>Faylni shu yerga tashlang</h3>
-                    <p>yoki</p>
+                    <h3>Drop your file here</h3>
+                    <p>or</p>
                     <label class="upload-btn">
-                        Fayl Tanlash
+                        Choose File
                         <input type="file" id="file-input" accept=".csv,.xlsx,.xls,.json,.tsv" hidden>
                     </label>
                     <p class="formats">CSV, Excel (.xlsx, .xls), JSON, TSV</p>
                 </div>
                 <div id="upload-progress" class="upload-progress hidden">
                     <div class="spinner"></div>
-                    <p>Yuklanmoqda va tahlil qilinmoqda...</p>
+                    <p>Uploading and analyzing...</p>
                 </div>
                 <div id="upload-error" class="error-msg hidden"></div>
             </div>
@@ -96,11 +96,11 @@
         <!-- Data Tab -->
         <section id="tab-data" class="tab-content">
             <div class="header-bar">
-                <h2>Ma'lumotlar Ko'rinishi</h2>
+                <h2>Data Preview</h2>
                 <div class="header-actions">
-                    <button class="btn btn-sm" id="prev-page">Oldingi</button>
+                    <button class="btn btn-sm" id="prev-page">Previous</button>
                     <span id="page-info"></span>
-                    <button class="btn btn-sm" id="next-page">Keyingi</button>
+                    <button class="btn btn-sm" id="next-page">Next</button>
                 </div>
             </div>
             <div class="table-wrapper">
@@ -110,107 +110,107 @@
 
         <!-- Clean Tab -->
         <section id="tab-clean" class="tab-content">
-            <div class="header-bar"><h2>Ma'lumot Tozalash</h2></div>
+            <div class="header-bar"><h2>Data Cleaning</h2></div>
             <div class="clean-ops">
                 <div class="clean-card">
-                    <h3>Dublikatlar</h3>
-                    <p>Takrorlangan qatorlarni o'chirish</p>
-                    <button class="btn" onclick="runClean([{'type':'drop_duplicates'}])">Tozalash</button>
+                    <h3>Duplicates</h3>
+                    <p>Remove duplicate rows</p>
+                    <button class="btn" onclick="runClean([{'type':'drop_duplicates'}])">Clean</button>
                 </div>
                 <div class="clean-card">
-                    <h3>Yetishmayotgan Qiymatlar</h3>
-                    <p>Bo'sh qiymatlarni to'ldirish strategiyasi</p>
+                    <h3>Missing Values</h3>
+                    <p>Strategy for filling empty values</p>
                     <select id="fill-strategy" class="select">
-                        <option value="mean">O'rtacha (Mean)</option>
-                        <option value="median">Mediana</option>
-                        <option value="zero">Nol</option>
+                        <option value="mean">Mean</option>
+                        <option value="median">Median</option>
+                        <option value="zero">Zero</option>
                     </select>
-                    <button class="btn" onclick="runClean([{'type':'fill_missing','strategy':document.getElementById('fill-strategy').value}])">To'ldirish</button>
-                    <button class="btn btn-danger" onclick="runClean([{'type':'drop_missing','threshold':0.5}])">O'chirish</button>
+                    <button class="btn" onclick="runClean([{'type':'fill_missing','strategy':document.getElementById('fill-strategy').value}])">Fill</button>
+                    <button class="btn btn-danger" onclick="runClean([{'type':'drop_missing','threshold':0.5}])">Drop</button>
                 </div>
                 <div class="clean-card">
-                    <h3>Anomal Qiymatlar (Outliers)</h3>
-                    <p>IQR yoki Z-Score usuli</p>
+                    <h3>Outliers</h3>
+                    <p>IQR or Z-Score method</p>
                     <select id="outlier-method" class="select">
                         <option value="iqr">IQR (1.5x)</option>
                         <option value="zscore">Z-Score (3)</option>
                     </select>
-                    <button class="btn" onclick="runClean([{'type':'remove_outliers','method':document.getElementById('outlier-method').value}])">O'chirish</button>
+                    <button class="btn" onclick="runClean([{'type':'remove_outliers','method':document.getElementById('outlier-method').value}])">Drop</button>
                 </div>
                 <div class="clean-card">
-                    <h3>Normalizatsiya</h3>
-                    <p>Sonli ustunlarni normallashtirish</p>
+                    <h3>Normalization</h3>
+                    <p>Scale numeric columns</p>
                     <select id="norm-method" class="select">
                         <option value="minmax">Min-Max (0-1)</option>
                         <option value="standard">Standard (Z-score)</option>
                     </select>
-                    <button class="btn" onclick="runClean([{'type':'normalize','method':document.getElementById('norm-method').value}])">Qo'llash</button>
+                    <button class="btn" onclick="runClean([{'type':'normalize','method':document.getElementById('norm-method').value}])">Apply</button>
                 </div>
                 <div class="clean-card">
-                    <h3>Kategoriyali Kodlash</h3>
-                    <p>Matn ustunlarini songa aylantirish</p>
+                    <h3>Categorical Encoding</h3>
+                    <p>Convert text columns to numbers</p>
                     <select id="encode-method" class="select">
                         <option value="label">Label Encoding</option>
                         <option value="onehot">One-Hot Encoding</option>
                     </select>
-                    <button class="btn" onclick="runClean([{'type':'encode_categorical','method':document.getElementById('encode-method').value}])">Kodlash</button>
+                    <button class="btn" onclick="runClean([{'type':'encode_categorical','method':document.getElementById('encode-method').value}])">Encode</button>
                 </div>
                 <div class="clean-card">
-                    <h3>Ustun O'chirish</h3>
-                    <p>Keraksiz ustunni olib tashlash</p>
+                    <h3>Drop Column</h3>
+                    <p>Remove an unwanted column</p>
                     <select id="drop-col" class="select"></select>
-                    <button class="btn btn-danger" onclick="runClean([{'type':'drop_column','column':document.getElementById('drop-col').value}])">O'chirish</button>
+                    <button class="btn btn-danger" onclick="runClean([{'type':'drop_column','column':document.getElementById('drop-col').value}])">Drop</button>
                 </div>
             </div>
             <div id="clean-results" class="clean-results"></div>
             <div class="header-bar" style="margin-top:20px">
-                <h3>Profil Ko'rish</h3>
-                <button class="btn btn-sm" onclick="downloadData('csv')">CSV Yuklab Olish</button>
-                <button class="btn btn-sm" onclick="downloadData('xlsx')">Excel Yuklab Olish</button>
+                <h3>Data Profile</h3>
+                <button class="btn btn-sm" onclick="downloadData('csv')">Download CSV</button>
+                <button class="btn btn-sm" onclick="downloadData('xlsx')">Download Excel</button>
             </div>
             <div id="profiling-display" class="profiling-display"></div>
         </section>
 
         <!-- Charts Tab -->
         <section id="tab-charts" class="tab-content">
-            <div class="header-bar"><h2>Grafik Yaratish</h2></div>
+            <div class="header-bar"><h2>Create Chart</h2></div>
             <div class="chart-builder">
                 <div class="chart-config">
-                    <label>Grafik Turi</label>
+                    <label>Chart Type</label>
                     <select id="chart-type" class="select">
-                        <option value="scatter">Scatter (Tarqoq)</option>
-                        <option value="line">Line (Chiziqli)</option>
-                        <option value="bar">Bar (Ustunli)</option>
-                        <option value="histogram">Histogram (Taqsimot)</option>
-                        <option value="box">Box (Quti)</option>
+                        <option value="scatter">Scatter</option>
+                        <option value="line">Line</option>
+                        <option value="bar">Bar</option>
+                        <option value="histogram">Histogram</option>
+                        <option value="box">Box</option>
                         <option value="violin">Violin</option>
-                        <option value="pie">Pie (Pirog)</option>
-                        <option value="area">Area (Maydon)</option>
-                        <option value="heatmap">Heatmap (Korrelyatsiya)</option>
+                        <option value="pie">Pie</option>
+                        <option value="area">Area</option>
+                        <option value="heatmap">Heatmap (Correlation)</option>
                         <option value="scatter3d">3D Scatter</option>
                         <option value="sunburst">Sunburst</option>
                         <option value="treemap">Treemap</option>
                     </select>
-                    <label>X Ustun</label>
+                    <label>X Column</label>
                     <select id="chart-x" class="select"></select>
-                    <label>Y Ustun</label>
+                    <label>Y Column</label>
                     <select id="chart-y" class="select"></select>
-                    <label>Z Ustun (3D uchun)</label>
+                    <label>Z Column (3D only)</label>
                     <select id="chart-z" class="select"></select>
-                    <label>Rang Ustun</label>
+                    <label>Color Column</label>
                     <select id="chart-color" class="select"></select>
-                    <label>Hajm Ustun (Scatter uchun)</label>
+                    <label>Size Column (Scatter only)</label>
                     <select id="chart-size" class="select"></select>
-                    <label>Agregatsiya</label>
+                    <label>Aggregation</label>
                     <select id="chart-agg" class="select">
-                        <option value="sum">Sum (Yig'indi)</option>
-                        <option value="mean">Mean (O'rtacha)</option>
-                        <option value="count">Count (Soni)</option>
+                        <option value="sum">Sum</option>
+                        <option value="mean">Mean</option>
+                        <option value="count">Count</option>
                         <option value="min">Min</option>
                         <option value="max">Max</option>
-                        <option value="none">Yo'q</option>
+                        <option value="none">None</option>
                     </select>
-                    <button class="btn" onclick="createChart()">Grafik Yaratish</button>
+                    <button class="btn" onclick="createChart()">Create Chart</button>
                 </div>
                 <div id="custom-chart" class="chart-display"></div>
             </div>
@@ -220,43 +220,43 @@
         <section id="tab-ml" class="tab-content">
             <div class="header-bar"><h2>Machine Learning</h2></div>
             <div class="ml-tabs">
-                <button class="ml-tab-btn active" data-mltab="predict">Prediction / Bashorat</button>
-                <button class="ml-tab-btn" data-mltab="cluster">Klasterlash</button>
+                <button class="ml-tab-btn active" data-mltab="predict">Prediction</button>
+                <button class="ml-tab-btn" data-mltab="cluster">Clustering</button>
             </div>
 
             <div id="mltab-predict" class="ml-section active">
                 <div class="ml-config">
-                    <label>Maqsad Ustun (Target)</label>
+                    <label>Target Column</label>
                     <select id="ml-target" class="select"></select>
-                    <label>Model Turi</label>
+                    <label>Model Type</label>
                     <select id="ml-model" class="select">
-                        <option value="auto">Auto (Eng yaxshisi)</option>
+                        <option value="auto">Auto (Best)</option>
                         <option value="linear">Linear Regression</option>
                         <option value="random_forest">Random Forest</option>
                         <option value="gradient_boosting">Gradient Boosting</option>
                         <option value="decision_tree">Decision Tree</option>
                     </select>
-                    <label>Masala Turi</label>
+                    <label>Problem Type</label>
                     <select id="ml-problem" class="select">
                         <option value="auto">Auto-detect</option>
-                        <option value="regression">Regression (Sonli)</option>
-                        <option value="classification">Classification (Kategoriya)</option>
+                        <option value="regression">Regression (Numeric)</option>
+                        <option value="classification">Classification (Categorical)</option>
                     </select>
-                    <label>Test Hajmi (%)</label>
+                    <label>Test Size (%)</label>
                     <input type="range" id="ml-test-size" min="10" max="40" value="20" oninput="document.getElementById('test-size-val').textContent=this.value+'%'">
                     <span id="test-size-val">20%</span>
-                    <button class="btn" onclick="runMLPredict()">Bashorat Qilish</button>
+                    <button class="btn" onclick="runMLPredict()">Predict</button>
                 </div>
                 <div id="ml-results" class="ml-results"></div>
             </div>
 
             <div id="mltab-cluster" class="ml-section">
                 <div class="ml-config">
-                    <label>Klaster Soni (K)</label>
+                    <label>Number of Clusters (K)</label>
                     <input type="number" id="cluster-k" value="3" min="2" max="20">
-                    <label>Xususiyatlar (bo'sh = avtomatik)</label>
+                    <label>Features (empty = automatic)</label>
                     <select id="cluster-features" class="select" multiple size="5"></select>
-                    <button class="btn" onclick="runCluster()">Klasterlash</button>
+                    <button class="btn" onclick="runCluster()">Clustering</button>
                 </div>
                 <div id="cluster-results" class="ml-results"></div>
             </div>
@@ -264,19 +264,19 @@
 
         <!-- Stats Tab -->
         <section id="tab-stats" class="tab-content">
-            <div class="header-bar"><h2>Statistik Tahlil</h2></div>
+            <div class="header-bar"><h2>Statistical Analysis</h2></div>
             <div class="stats-config">
-                <label>Tahlil Turi</label>
+                <label>Analysis Type</label>
                 <select id="stats-type" class="select">
-                    <option value="correlation">Korrelyatsiya Matrisasi</option>
-                    <option value="distribution">Taqsimot Tahlili</option>
-                    <option value="ttest">T-Test (Ikki ustun)</option>
+                    <option value="correlation">Correlation Matrix</option>
+                    <option value="distribution">Distribution Analysis</option>
+                    <option value="ttest">T-Test (Two Columns)</option>
                 </select>
-                <label>Ustun 1</label>
+                <label>Column 1</label>
                 <select id="stats-col1" class="select"></select>
-                <label>Ustun 2 (T-Test uchun)</label>
+                <label>Column 2 (for T-Test)</label>
                 <select id="stats-col2" class="select"></select>
-                <button class="btn" onclick="runStats()">Tahlil Qilish</button>
+                <button class="btn" onclick="runStats()">Analyze</button>
             </div>
             <div id="stats-results" class="stats-results"></div>
         </section>
@@ -285,7 +285,7 @@
         <section id="tab-insights" class="tab-content">
             <div class="header-bar">
                 <h2>AI Insights</h2>
-                <button class="btn btn-sm" onclick="loadInsights()">Yangilash</button>
+                <button class="btn btn-sm" onclick="loadInsights()">Refresh</button>
             </div>
             <div id="insights-container" class="insights-container"></div>
         </section>
